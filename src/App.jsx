@@ -5,17 +5,35 @@ import CurrentWeather from "./components/CurrentWeather";
 import AirQuality from "./components/AirQuality";
 import WeatherDetails from "./components/WeatherDetails";
 import Forecast from "./components/Forecast";
-import { getWeatherByCity, getWeatherByCoordinates } from "./services/weatherService";
+import {
+  getWeatherByCity,
+  getWeatherByCoordinates,
+} from "./services/weatherService";
 
+// Choose a background theme by checking the weather condition and icon.
 function getWeatherTheme(weather) {
   const weatherCondition = weather?.weather?.[0]?.main?.toLowerCase() || "clouds";
   const isNightTime = weather?.weather?.[0]?.icon?.endsWith("n");
 
-  if (isNightTime) return "night";
-  if (weatherCondition.includes("thunder")) return "stormy";
-  if (weatherCondition.includes("rain") || weatherCondition.includes("drizzle")) return "rainy";
-  if (weatherCondition.includes("snow")) return "snowy";
-  if (weatherCondition.includes("clear")) return "sunny";
+  if (isNightTime) {
+    return "night";
+  }
+
+  if (weatherCondition.includes("thunder")) {
+    return "stormy";
+  }
+
+  if (weatherCondition.includes("rain") || weatherCondition.includes("drizzle")) {
+    return "rainy";
+  }
+
+  if (weatherCondition.includes("snow")) {
+    return "snowy";
+  }
+
+  if (weatherCondition.includes("clear")) {
+    return "sunny";
+  }
 
   return "cloudy";
 }
@@ -26,6 +44,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Search for a city and load its current weather, AQI and forecast.
   async function loadWeather(cityToSearch = city) {
     if (!cityToSearch.trim()) {
       setError("Please enter a city name.");
@@ -47,22 +66,66 @@ function App() {
     }
   }
 
+  // Load Hyderabad when the dashboard opens for the first time.
   useEffect(() => {
     loadWeather("Hyderabad");
-    // Load the default city once when the app starts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const currentWeather = weatherData?.currentWeather;
-  const pageTheme = getWeatherTheme(currentWeather);
+  // Ask the browser for permission to use the device's current location.
+  function handleUseLocation() {
+    if (!navigator.geolocation) {
+      setError("Your browser does not support location sharing. Please search for a city instead.");
+      return;
+    }
 
-  function handleUseLocation() {\n    if (!navigator.geolocation) {\n      setError("Your browser does not support location sharing. Please search for a city instead.");\n      return;\n    }\n\n    setLoading(true);\n    setError("");\n\n    navigator.geolocation.getCurrentPosition(\n      async (position) => {\n        try {\n          const latitude = position.coords.latitude;\n          const longitude = position.coords.longitude;\n          const nearbyWeather = await getWeatherByCoordinates(latitude, longitude);\n\n          setWeatherData(nearbyWeather);\n          setCity(nearbyWeather.cityName);\n        } catch (locationError) {\n          setError(locationError.message || "We could not load weather for your location.");\n        } finally {\n          setLoading(false);\n        }\n      },\n      (locationError) => {\n        if (locationError.code === 1) {\n          setError("Location permission was denied. Allow location access in your browser or search for a city.");\n        } else {\n          setError("We could not get your location. Please try again or search for a city.");\n        }\n        setLoading(false);\n      },\n      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }\n    );\n  }\n\n  function handleRefresh() {
+    setLoading(true);
+    setError("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+
+          const nearbyWeather = await getWeatherByCoordinates(latitude, longitude);
+
+          setWeatherData(nearbyWeather);
+          setCity(nearbyWeather.cityName);
+        } catch (locationError) {
+          setError(locationError.message || "We could not load weather for your location.");
+        } finally {
+          setLoading(false);
+        }
+      },
+      (locationError) => {
+        if (locationError.code === 1) {
+          setError("Location permission was denied. Allow location access in your browser or search for a city.");
+        } else {
+          setError("We could not get your location. Please try again or search for a city.");
+        }
+
+        setLoading(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000,
+      }
+    );
+  }
+
+  // Refresh the city currently displayed on the dashboard.
+  function handleRefresh() {
     if (weatherData) {
       loadWeather(weatherData.cityName);
     } else {
       loadWeather(city);
     }
   }
+
+  const currentWeather = weatherData?.currentWeather;
+  const pageTheme = getWeatherTheme(currentWeather);
 
   return (
     <div className={"weather-scene " + pageTheme + " min-h-screen text-white"}>
@@ -75,6 +138,7 @@ function App() {
           onSearch={() => loadWeather(city)}
           loading={loading}
           onRefresh={handleRefresh}
+          onUseLocation={handleUseLocation}
         />
 
         <main className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-5 sm:px-7 lg:px-10">
@@ -84,6 +148,7 @@ function App() {
                 <Sparkles size={13} />
                 YOUR PERSONAL WEATHER SPACE
               </div>
+
               <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Weather at a glance
               </h1>
@@ -91,7 +156,8 @@ function App() {
 
             {currentWeather && (
               <p className="text-xs text-white/60">
-                Last updated: {new Date(currentWeather.dt * 1000).toLocaleTimeString([], {
+                Last updated:{" "}
+                {new Date(currentWeather.dt * 1000).toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit",
                 })}
@@ -144,6 +210,7 @@ function App() {
   );
 }
 
+// This panel shows the daylight journey from sunrise to sunset.
 function SunCycle({ weather }) {
   const sunriseTimestamp = weather.sys.sunrise;
   const sunsetTimestamp = weather.sys.sunset;
@@ -156,13 +223,29 @@ function SunCycle({ weather }) {
   const daylightText = daylightHours + "h " + daylightMinutes + "m";
 
   const sunriseText = new Date((sunriseTimestamp + weather.timezone) * 1000)
-    .toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
+    .toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
 
   const sunsetText = new Date((sunsetTimestamp + weather.timezone) * 1000)
-    .toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
+    .toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
 
-  let daylightProgress = (currentTimestamp - sunriseTimestamp) / daylightSeconds;
+  let daylightProgress = 0;
+
+  if (daylightSeconds > 0) {
+    daylightProgress = (currentTimestamp - sunriseTimestamp) / daylightSeconds;
+  }
+
   daylightProgress = Math.min(Math.max(daylightProgress, 0), 1);
+
+  const sunPositionX = 20 + 280 * daylightProgress;
+  const sunPositionY = 105 - 100 * Math.sin(Math.PI * daylightProgress);
 
   return (
     <section className="glass-panel flex min-h-[300px] flex-col justify-between rounded-[26px] p-5 sm:p-7">
@@ -173,7 +256,12 @@ function SunCycle({ weather }) {
         </div>
 
         <div className="relative mt-5 px-3">
-          <svg viewBox="0 0 320 125" className="w-full" role="img" aria-label="Daylight progress from sunrise to sunset">
+          <svg
+            viewBox="0 0 320 125"
+            className="w-full"
+            role="img"
+            aria-label="Daylight progress from sunrise to sunset"
+          >
             <path
               d="M 20 105 A 140 100 0 0 1 300 105"
               fill="none"
@@ -181,6 +269,7 @@ function SunCycle({ weather }) {
               strokeWidth="3"
               strokeDasharray="5 6"
             />
+
             <path
               d="M 20 105 A 140 100 0 0 1 300 105"
               fill="none"
@@ -189,11 +278,13 @@ function SunCycle({ weather }) {
               pathLength="100"
               strokeDasharray={daylightProgress * 100 + " 100"}
             />
+
             <circle cx="20" cy="105" r="6" fill="#fbbf24" />
             <circle cx="300" cy="105" r="6" fill="#f0abfc" />
+
             <circle
-              cx={20 + 280 * daylightProgress}
-              cy={105 - 100 * Math.sin(Math.PI * daylightProgress)}
+              cx={sunPositionX}
+              cy={sunPositionY}
               r="9"
               fill="#fde047"
               stroke="rgba(255,255,255,0.8)"
@@ -211,6 +302,7 @@ function SunCycle({ weather }) {
             <p className="text-xs text-white/55">Sunrise</p>
           </div>
         </div>
+
         <div className="flex items-center justify-end gap-2">
           <span className="text-2xl text-pink-200">☀</span>
           <div>
