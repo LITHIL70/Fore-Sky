@@ -38,69 +38,71 @@ input:focus-visible {
   background: rgba(56, 189, 248, 0.3);
 }
 
-/* All dashboard panels use this reusable transparent glass style. */
+/* Reusable translucent glass effect for all dashboard panels. */
 .glass-panel {
-  background: rgba(13, 29, 45, 0.48);
-  border: 1px solid rgba(219, 234, 254, 0.23);
+  background: rgba(13, 29, 45, 0.43);
+  border: 1px solid rgba(219, 234, 254, 0.24);
   box-shadow:
-    0 16px 44px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+    0 16px 44px rgba(0, 0, 0, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(17px);
+  -webkit-backdrop-filter: blur(17px);
 }
 
-/* The background color changes based on the current weather condition. */
+/* A scenic background image sits underneath each weather-specific color treatment. */
 .weather-scene {
   position: relative;
   isolation: isolate;
+  min-height: 100vh;
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   transition: background 700ms ease;
 }
 
-/* Sunny weather gets a warm golden sky. */
+/* Sunny weather uses warm gold and sunset colors. */
 .weather-scene.sunny {
   background-image:
-    radial-gradient(ellipse at 70% 10%, rgba(251, 191, 36, 0.28), transparent 36%),
-    linear-gradient(135deg, #243b55 0%, #456b83 45%, #e28a55 100%);
+    linear-gradient(115deg, rgba(26, 43, 68, 0.58), rgba(218, 125, 71, 0.25)),
+    url("https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=2400&q=85");
 }
 
-/* Cloudy weather gets a muted blue-grey sky. */
+/* Cloudy weather uses a cool blue-grey treatment. */
 .weather-scene.cloudy {
   background-image:
-    radial-gradient(ellipse at 75% 15%, rgba(203, 213, 225, 0.22), transparent 38%),
-    linear-gradient(135deg, #26384d 0%, #526b7b 50%, #182b40 100%);
+    linear-gradient(115deg, rgba(20, 39, 60, 0.68), rgba(73, 91, 111, 0.48)),
+    url("https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=2400&q=85");
 }
 
-/* Rainy weather gets a deeper, cooler blue background. */
+/* Rainy weather uses deeper blue colors. */
 .weather-scene.rainy {
   background-image:
-    radial-gradient(ellipse at 75% 10%, rgba(56, 189, 248, 0.22), transparent 35%),
-    linear-gradient(135deg, #10283d 0%, #1b4b68 48%, #091725 100%);
+    linear-gradient(115deg, rgba(5, 25, 48, 0.78), rgba(15, 77, 111, 0.50)),
+    url("https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=2400&q=85");
 }
 
-/* Snowy weather gets a pale icy glow. */
+/* Snowy weather uses a brighter icy-blue overlay. */
 .weather-scene.snowy {
   background-image:
-    radial-gradient(ellipse at 70% 12%, rgba(186, 230, 253, 0.28), transparent 38%),
-    linear-gradient(135deg, #29445a 0%, #55788b 48%, #14283c 100%);
+    linear-gradient(115deg, rgba(39, 69, 91, 0.55), rgba(145, 183, 204, 0.40)),
+    url("https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=2400&q=85");
 }
 
-/* Thunderstorms get a darker purple-blue sky. */
+/* Thunderstorms use a dark purple and navy overlay. */
 .weather-scene.stormy {
   background-image:
-    radial-gradient(ellipse at 70% 12%, rgba(167, 139, 250, 0.22), transparent 35%),
-    linear-gradient(135deg, #191b36 0%, #30334f 48%, #101629 100%);
+    linear-gradient(115deg, rgba(13, 15, 39, 0.82), rgba(46, 43, 76, 0.60)),
+    url("https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=2400&q=85");
 }
 
-/* Clear night conditions get a midnight-blue sky. */
+/* Nighttime uses a midnight-blue overlay. */
 .weather-scene.night {
   background-image:
-    radial-gradient(ellipse at 78% 10%, rgba(129, 140, 248, 0.23), transparent 34%),
-    linear-gradient(135deg, #080f25 0%, #18294b 50%, #080f1e 100%);
+    linear-gradient(115deg, rgba(4, 10, 29, 0.86), rgba(18, 29, 65, 0.68)),
+    url("https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=2400&q=85");
 }
 
+/* A subtle shade keeps white text readable over the photo. */
 .weather-background-overlay {
   position: fixed;
   inset: 0;
@@ -110,14 +112,15 @@ input:focus-visible {
     180deg,
     rgba(3, 10, 22, 0.08) 0%,
     rgba(3, 10, 22, 0.18) 55%,
-    rgba(3, 10, 22, 0.36) 100%
+    rgba(3, 10, 22, 0.38) 100%
   );
 }
 
+/* The main weather card has an extra warm glow behind its weather icon. */
 .current-weather-card {
   background:
-    radial-gradient(ellipse at 78% 28%, rgba(251, 191, 36, 0.13), transparent 35%),
-    rgba(13, 29, 45, 0.45);
+    radial-gradient(ellipse at 78% 28%, rgba(251, 191, 36, 0.16), transparent 35%),
+    rgba(13, 29, 45, 0.40);
 }
 
 @media (prefers-reduced-motion: reduce) {
