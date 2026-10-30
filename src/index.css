@@ -2,30 +2,128 @@
 
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #e5edf8;
+  color: #f8fafc;
   background: #071321;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
-* { box-sizing: border-box; }
-html { min-width: 320px; background: #071321; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, input { font: inherit; }
-button:focus-visible, input:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
-::selection { background: rgba(56, 189, 248, 0.3); }
 
-.glass-panel {
-  background: rgba(13, 29, 45, 0.58);
-  border: 1px solid rgba(219, 234, 254, 0.15);
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+* {
+  box-sizing: border-box;
 }
-.weather-scene { background-size: cover; background-position: center; background-attachment: fixed; transition: background 700ms ease; }
-.weather-scene.sunny { background-image: radial-gradient(ellipse at 75% 12%, rgba(251, 191, 36, 0.22), transparent 34%), linear-gradient(135deg, #263c58 0%, #15516b 48%, #14243c 100%); }
-.weather-scene.cloudy { background-image: radial-gradient(ellipse at 70% 12%, rgba(148, 163, 184, 0.2), transparent 38%), linear-gradient(135deg, #25364b 0%, #344b61 48%, #101f33 100%); }
-.weather-scene.rainy { background-image: radial-gradient(ellipse at 75% 10%, rgba(56, 189, 248, 0.18), transparent 35%), linear-gradient(135deg, #10283d 0%, #183c59 48%, #091725 100%); }
-.weather-scene.snowy { background-image: radial-gradient(ellipse at 70% 12%, rgba(186, 230, 253, 0.22), transparent 38%), linear-gradient(135deg, #29445a 0%, #36566b 48%, #14283c 100%); }
-.weather-scene.stormy { background-image: radial-gradient(ellipse at 70% 12%, rgba(167, 139, 250, 0.18), transparent 35%), linear-gradient(135deg, #191b36 0%, #252a49 48%, #101629 100%); }
-.weather-scene.night { background-image: radial-gradient(ellipse at 78% 10%, rgba(129, 140, 248, 0.2), transparent 34%), linear-gradient(135deg, #080f25 0%, #121d3a 50%, #080f1e 100%); }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
+
+html {
+  min-width: 320px;
+  background: #071321;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.3);
+}
+
+/* All dashboard panels use this reusable transparent glass style. */
+.glass-panel {
+  background: rgba(13, 29, 45, 0.48);
+  border: 1px solid rgba(219, 234, 254, 0.23);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* The background color changes based on the current weather condition. */
+.weather-scene {
+  position: relative;
+  isolation: isolate;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  transition: background 700ms ease;
+}
+
+/* Sunny weather gets a warm golden sky. */
+.weather-scene.sunny {
+  background-image:
+    radial-gradient(ellipse at 70% 10%, rgba(251, 191, 36, 0.28), transparent 36%),
+    linear-gradient(135deg, #243b55 0%, #456b83 45%, #e28a55 100%);
+}
+
+/* Cloudy weather gets a muted blue-grey sky. */
+.weather-scene.cloudy {
+  background-image:
+    radial-gradient(ellipse at 75% 15%, rgba(203, 213, 225, 0.22), transparent 38%),
+    linear-gradient(135deg, #26384d 0%, #526b7b 50%, #182b40 100%);
+}
+
+/* Rainy weather gets a deeper, cooler blue background. */
+.weather-scene.rainy {
+  background-image:
+    radial-gradient(ellipse at 75% 10%, rgba(56, 189, 248, 0.22), transparent 35%),
+    linear-gradient(135deg, #10283d 0%, #1b4b68 48%, #091725 100%);
+}
+
+/* Snowy weather gets a pale icy glow. */
+.weather-scene.snowy {
+  background-image:
+    radial-gradient(ellipse at 70% 12%, rgba(186, 230, 253, 0.28), transparent 38%),
+    linear-gradient(135deg, #29445a 0%, #55788b 48%, #14283c 100%);
+}
+
+/* Thunderstorms get a darker purple-blue sky. */
+.weather-scene.stormy {
+  background-image:
+    radial-gradient(ellipse at 70% 12%, rgba(167, 139, 250, 0.22), transparent 35%),
+    linear-gradient(135deg, #191b36 0%, #30334f 48%, #101629 100%);
+}
+
+/* Clear night conditions get a midnight-blue sky. */
+.weather-scene.night {
+  background-image:
+    radial-gradient(ellipse at 78% 10%, rgba(129, 140, 248, 0.23), transparent 34%),
+    linear-gradient(135deg, #080f25 0%, #18294b 50%, #080f1e 100%);
+}
+
+.weather-background-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(3, 10, 22, 0.08) 0%,
+    rgba(3, 10, 22, 0.18) 55%,
+    rgba(3, 10, 22, 0.36) 100%
+  );
+}
+
+.current-weather-card {
+  background:
+    radial-gradient(ellipse at 78% 28%, rgba(251, 191, 36, 0.13), transparent 35%),
+    rgba(13, 29, 45, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
