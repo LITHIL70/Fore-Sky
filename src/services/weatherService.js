@@ -4,7 +4,6 @@ const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 const GEOCODING_URL = "https://api.openweathermap.org/geo/1.0/direct";
 
-// Find the city's latitude and longitude from its name.
 async function getCityCoordinates(cityName) {
   if (!API_KEY) {
     throw new Error("OpenWeather API key is missing. Add it to your .env file and restart the development server.");
@@ -21,21 +20,33 @@ async function getCityCoordinates(cityName) {
   return response.data[0];
 }
 
-// Get current weather and the five-day forecast for a city.
+async function getAirQuality(lat, lon) {
+  try {
+    const response = await axios.get(BASE_URL + "/air_pollution", {
+      params: { lat, lon, appid: API_KEY },
+    });
+    return response.data.list?.[0] ?? null;
+  } catch {
+    // Keep the rest of the weather dashboard working if AQI is unavailable.
+    return null;
+  }
+}
+
 export async function getWeatherByCity(cityName) {
   try {
     const city = await getCityCoordinates(cityName);
     const parameters = { lat: city.lat, lon: city.lon, appid: API_KEY, units: "metric" };
 
-    // Fetch both endpoints at the same time.
-    const [currentResponse, forecastResponse] = await Promise.all([
-      axios.get(`${BASE_URL}/weather`, { params: parameters }),
-      axios.get(`${BASE_URL}/forecast`, { params: parameters }),
+    const [currentResponse, forecastResponse, airQuality] = await Promise.all([
+      axios.get(BASE_URL + "/weather", { params: parameters }),
+      axios.get(BASE_URL + "/forecast", { params: parameters }),
+      getAirQuality(city.lat, city.lon),
     ]);
 
     return {
       currentWeather: currentResponse.data,
       forecast: forecastResponse.data,
+      airQuality,
       cityName: city.name,
       country: city.country,
     };
