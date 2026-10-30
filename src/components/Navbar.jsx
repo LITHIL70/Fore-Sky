@@ -1,7 +1,7 @@
-import { CloudSun, RefreshCw } from "lucide-react";
+import { CloudSun, RefreshCw, LocateFixed } from "lucide-react";
 import SearchBar from "./SearchBar";
 
-function Navbar({ city, setCity, onSearch, loading, onRefresh }) {
+function Navbar({ city, setCity, onSearch, loading, onRefresh, onUseLocation }) {
   return (
     <header className="relative z-10 border-b border-white/15 bg-slate-950/20 backdrop-blur-xl">
       <div className="mx-auto grid max-w-[1600px] items-center gap-4 px-4 py-4 sm:px-7 lg:grid-cols-[1fr_minmax(320px,560px)_1fr] lg:px-10">
@@ -22,15 +22,25 @@ function Navbar({ city, setCity, onSearch, loading, onRefresh }) {
           loading={loading}
         />
 
-        <div className="flex items-center justify-start lg:justify-end">
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <button
+            type="button"
+            onClick={onUseLocation}
+            disabled={loading}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-white/[0.07] px-4 text-sm font-medium text-white backdrop-blur transition hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <LocateFixed size={16} />
+            Use my location
+          </button>
+
           <button
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-white/[0.07] px-4 text-sm font-medium text-white backdrop-blur transition hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Refresh weather"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/[0.07] text-white backdrop-blur transition hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            Refresh weather
           </button>
         </div>
       </div>
