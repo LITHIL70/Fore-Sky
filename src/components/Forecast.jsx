@@ -2,54 +2,161 @@ import { CalendarDays, Clock3 } from "lucide-react";
 
 function Forecast({ forecast }) {
   const cityTimeZone = forecast.city.timezone;
-  function getCityDate(timestamp) { return new Date((timestamp + cityTimeZone) * 1000); }
-  function formatTime(timestamp) { return getCityDate(timestamp).toLocaleTimeString("en-US", { hour: "numeric", hour12: true, timeZone: "UTC" }); }
-  function getLocalDateKey(timestamp) { return getCityDate(timestamp).toISOString().slice(0, 10); }
-  function formatDay(timestamp) { return getCityDate(timestamp).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }); }
 
+  // Convert a forecast timestamp into the searched city's local time.
+  function getCityDate(timestamp) {
+    return new Date((timestamp + cityTimeZone) * 1000);
+  }
+
+  function formatTime(timestamp) {
+    return getCityDate(timestamp).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      hour12: true,
+      timeZone: "UTC",
+    });
+  }
+
+  function getLocalDateKey(timestamp) {
+    return getCityDate(timestamp).toISOString().slice(0, 10);
+  }
+
+  function formatDay(timestamp) {
+    return getCityDate(timestamp).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
+  // The forecast API gives data in three-hour intervals.
+  // Eight entries give us roughly the next 24 hours.
   const upcomingItems = forecast.list.slice(0, 8);
   const forecastsByDay = {};
-  forecast.list.forEach((item) => {
-    const key = getLocalDateKey(item.dt);
-    if (!forecastsByDay[key]) forecastsByDay[key] = [];
-    forecastsByDay[key].push(item);
+
+  forecast.list.forEach((forecastItem) => {
+    const dateKey = getLocalDateKey(forecastItem.dt);
+
+    if (!forecastsByDay[dateKey]) {
+      forecastsByDay[dateKey] = [];
+    }
+
+    forecastsByDay[dateKey].push(forecastItem);
   });
 
+  // Pick the entry closest to midday for each day.
+  // Also calculate that day's lowest and highest forecast temperatures.
   const dailyItems = Object.values(forecastsByDay).map((items) => {
-    let midday = items[0];
-    let smallestDifference = Infinity;
-    items.forEach((item) => {
-      const difference = Math.abs(getCityDate(item.dt).getUTCHours() - 12);
-      if (difference < smallestDifference) { smallestDifference = difference; midday = item; }
+    let middayForecast = items[0];
+    let smallestTimeDifference = Infinity;
+
+    items.forEach((forecastItem) => {
+      const forecastHour = getCityDate(forecastItem.dt).getUTCHours();
+      const timeDifference = Math.abs(forecastHour - 12);
+
+      if (timeDifference < smallestTimeDifference) {
+        smallestTimeDifference = timeDifference;
+        middayForecast = forecastItem;
+      }
     });
-    return { ...midday, low: Math.min(...items.map((item) => item.main.temp_min)), high: Math.max(...items.map((item) => item.main.temp_max)) };
+
+    const temperatures = items.map((forecastItem) => forecastItem.main.temp);
+
+    return {
+      ...middayForecast,
+      low: Math.min(...temperatures),
+      high: Math.max(...temperatures),
+    };
   }).slice(0, 5);
 
   return (
-    <div className="grid gap-4">
-      <section className="glass-panel rounded-3xl p-4 sm:p-5">
-        <div className="mb-4 flex items-center gap-2"><div className="rounded-xl bg-cyan-300/10 p-2 text-cyan-100"><Clock3 size={17} /></div><div><h3 className="text-sm font-semibold text-white">Hourly forecast</h3><p className="text-[11px] text-white/55">The next 24 hours</p></div></div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {upcomingItems.map((item, index) => (
-            <div key={item.dt} className={"min-w-[76px] flex-1 rounded-2xl px-2 py-3 text-center " + (index === 0 ? "border border-cyan-200/20 bg-cyan-300/[0.10]" : "bg-slate-950/20")}>
-              <p className="text-[11px] text-white/65">{index === 0 ? "Now" : formatTime(item.dt)}</p>
-              <img src={"https://openweathermap.org/img/wn/" + item.weather[0].icon + "@2x.png"} alt={item.weather[0].description} className="mx-auto my-1 h-11 w-11" />
-              <p className="text-base font-semibold text-white">{Math.round(item.main.temp)}°</p><p className="mt-1 truncate text-[10px] capitalize text-white/50">{item.weather[0].main}</p>
-            </div>
-          ))}
+    <div className="flex flex-col gap-4">
+      <section className="glass-panel rounded-[24px] p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="rounded-xl bg-cyan-300/15 p-2 text-cyan-200">
+            <Clock3 size={19} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-white">Hourly Forecast</h3>
+            <p className="text-xs text-white/55">Weather for the next 24 hours</p>
+          </div>
+          <span className="ml-auto hidden text-xs text-white/45 sm:block">3-hour intervals</span>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {upcomingItems.map((forecastItem, index) => {
+            const iconUrl = "https://openweathermap.org/img/wn/" + forecastItem.weather[0].icon + "@2x.png";
+            const timeLabel = index === 0 ? "Next" : formatTime(forecastItem.dt);
+
+            return (
+              <article
+                key={forecastItem.dt}
+                className={
+                  "min-w-[82px] flex-1 rounded-2xl border px-2 py-3 text-center sm:min-w-[88px] " +
+                  (index === 0
+                    ? "border-cyan-300/50 bg-cyan-300/[0.13] shadow-lg shadow-cyan-950/20"
+                    : "border-white/10 bg-slate-950/[0.20]")
+                }
+              >
+                <p className="text-xs text-white/70">{timeLabel}</p>
+                <img
+                  src={iconUrl}
+                  alt={forecastItem.weather[0].description}
+                  className="mx-auto my-2 h-12 w-12"
+                />
+                <p className="text-lg font-semibold text-white">
+                  {Math.round(forecastItem.main.temp)}°
+                </p>
+                <p className="mt-1 truncate text-[10px] capitalize text-white/55">
+                  {forecastItem.weather[0].main}
+                </p>
+              </article>
+            );
+          })}
         </div>
       </section>
-      <section className="glass-panel rounded-3xl p-4 sm:p-5">
-        <div className="mb-2 flex items-center gap-2"><div className="rounded-xl bg-violet-300/10 p-2 text-violet-100"><CalendarDays size={17} /></div><div><h3 className="text-sm font-semibold text-white">Five-day forecast</h3><p className="text-[11px] text-white/55">A compact look at the days ahead</p></div></div>
-        <div className="divide-y divide-white/10">
-          {dailyItems.map((item, index) => (
-            <div key={item.dt} className="grid grid-cols-[72px_40px_minmax(0,1fr)_auto] items-center gap-2 py-2 sm:grid-cols-[100px_44px_minmax(0,1fr)_100px] sm:gap-3">
-              <p className="text-xs font-medium text-white/85 sm:text-sm">{index === 0 ? "Today" : formatDay(item.dt)}</p>
-              <img src={"https://openweathermap.org/img/wn/" + item.weather[0].icon + ".png"} alt={item.weather[0].description} className="h-9 w-9" />
-              <p className="truncate text-xs capitalize text-white/60 sm:text-sm">{item.weather[0].description}</p>
-              <div className="flex items-center justify-end gap-2 text-xs tabular-nums sm:text-sm"><span className="font-semibold text-white">{Math.round(item.high)}°</span><span className="text-white/45">{Math.round(item.low)}°</span></div>
-            </div>
-          ))}
+
+      <section className="glass-panel rounded-[24px] p-4 sm:p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="rounded-xl bg-violet-300/15 p-2 text-violet-100">
+            <CalendarDays size={19} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-white">Five-day Forecast</h3>
+            <p className="text-xs text-white/55">Daily conditions and temperature range</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {dailyItems.map((forecastItem, index) => {
+            const iconUrl = "https://openweathermap.org/img/wn/" + forecastItem.weather[0].icon + "@2x.png";
+            const dayLabel = index === 0 ? "Today" : formatDay(forecastItem.dt);
+
+            return (
+              <article
+                key={forecastItem.dt}
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/[0.18] px-3 py-3 transition hover:border-white/25 hover:bg-white/[0.07] sm:flex-col sm:items-start sm:gap-2 sm:p-3"
+              >
+                <p className="w-20 shrink-0 text-xs font-medium text-white/75 sm:w-auto">
+                  {dayLabel}
+                </p>
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:w-full sm:flex-col sm:items-start">
+                  <img
+                    src={iconUrl}
+                    alt={forecastItem.weather[0].description}
+                    className="h-12 w-12 shrink-0"
+                  />
+                  <p className="truncate text-xs capitalize text-white/65 sm:whitespace-normal">
+                    {forecastItem.weather[0].description}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2 text-sm tabular-nums sm:w-full sm:justify-between">
+                  <span className="font-bold text-white">{Math.round(forecastItem.high)}°</span>
+                  <span className="text-white/50">{Math.round(forecastItem.low)}°</span>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
     </div>
