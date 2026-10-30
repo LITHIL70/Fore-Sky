@@ -310,11 +310,16 @@ function SunCycle({ weather, currentTime }) {
   const sunPositionY = 105 - 100 * Math.sin(Math.PI * daylightProgress);
 
   const isBeforeSunrise = currentTime < sunriseTimestamp;
-  const nextSunEventTimestamp = isBeforeSunrise ? sunriseTimestamp : sunsetTimestamp;
+  const isAfterSunset = currentTime >= sunsetTimestamp;
+  const nextSunEventTimestamp = isBeforeSunrise
+    ? sunriseTimestamp
+    : isAfterSunset
+      ? sunriseTimestamp + 86400
+      : sunsetTimestamp;
   const countdownSeconds = Math.max(nextSunEventTimestamp - currentTime, 0);
   const countdownHours = Math.floor(countdownSeconds / 3600);
   const countdownMinutes = Math.floor((countdownSeconds % 3600) / 60);
-  const countdownLabel = isBeforeSunrise ? "Sunrise in" : "Sunset in";
+  const countdownLabel = isBeforeSunrise || isAfterSunset ? "Sunrise in" : "Sunset in";
 
   return (
     <section className="glass-panel flex min-h-[300px] flex-col justify-between rounded-[26px] p-5 sm:p-7">
