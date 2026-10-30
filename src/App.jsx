@@ -5,37 +5,38 @@ import CurrentWeather from "./components/CurrentWeather";
 import AirQuality from "./components/AirQuality";
 import WeatherDetails from "./components/WeatherDetails";
 import Forecast from "./components/Forecast";
+import WeatherSkeleton from "./components/WeatherSkeleton";
+import WeatherAdvice from "./components/WeatherAdvice";
 import {
   getWeatherByCity,
   getWeatherByCoordinates,
 } from "./services/weatherService";
+
+const SEARCH_HISTORY_STORAGE_KEY = "fore-sky-search-history";
+const THEME_STORAGE_KEY = "fore-sky-theme";
 
 // Choose a background theme by checking the weather condition and icon.
 function getWeatherTheme(weather) {
   const weatherCondition = weather?.weather?.[0]?.main?.toLowerCase() || "clouds";
   const isNightTime = weather?.weather?.[0]?.icon?.endsWith("n");
 
-  if (isNightTime) {
-    return "night";
-  }
-
-  if (weatherCondition.includes("thunder")) {
-    return "stormy";
-  }
-
-  if (weatherCondition.includes("rain") || weatherCondition.includes("drizzle")) {
-    return "rainy";
-  }
-
-  if (weatherCondition.includes("snow")) {
-    return "snowy";
-  }
-
-  if (weatherCondition.includes("clear")) {
-    return "sunny";
-  }
-
+  if (isNightTime) return "night";
+  if (weatherCondition.includes("thunder")) return "stormy";
+  if (weatherCondition.includes("rain") || weatherCondition.includes("drizzle")) return "rainy";
+  if (weatherCondition.includes("snow")) return "snowy";
+  if (weatherCondition.includes("clear")) return "sunny";
   return "cloudy";
+}
+
+// Format a timestamp using the UTC offset returned for the searched city.
+function formatCityTime(timestamp, cityTimeZone) {
+  const cityDate = new Date((timestamp + cityTimeZone) * 1000);
+
+  return cityDate.toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
 }
 
 function App() {
@@ -43,6 +44,64 @@ function App() {
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Remember recent searches and the selected appearance in this browser.
+  const [searchHistory, setSearchHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY)) || [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY) || "dark";
+    } catch {
+      return "dark";
+    }
+  });
+
+  // Keep countdowns and the daylight arc fresh while the page stays open.
+  const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const clockInterval = window.setInterval(() => {
+      setCurrentTime(Math.floor(Date.now() / 1000));
+    }, 30000);
+
+    return () => window.clearInterval(clockInterval);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("light-theme", theme === "light");
+
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // The dashboard still works if browser storage is unavailable.
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(searchHistory));
+    } catch {
+      // Search history is a convenience, so storage errors should not stop weather loading.
+    }
+  }, [searchHistory]);
+
+  function rememberCity(cityName) {
+    const cleanedCityName = cityName.trim();
+
+    setSearchHistory((previousHistory) => {
+      const matchingCityRemoved = previousHistory.filter(
+        (historyCity) => historyCity.toLowerCase() !== cleanedCityName.toLowerCase()
+      );
+
+      return [cleanedCityName, ...matchingCityRemoved].slice(0, 6);
+    });
+  }
 
   // Search for a city and load its current weather, AQI and forecast.
   async function loadWeather(cityToSearch = city) {
@@ -59,6 +118,7 @@ function App() {
 
       setWeatherData(latestWeatherData);
       setCity(latestWeatherData.cityName);
+      rememberCity(latestWeatherData.cityName);
     } catch (requestError) {
       setError(requestError.message || "Unable to load weather. Please try again.");
     } finally {
@@ -66,7 +126,7 @@ function App() {
     }
   }
 
-  // Load Hyderabad when the dashboard opens for the first time.
+  // Load the default city when the dashboard opens for the first time.
   useEffect(() => {
     loadWeather("Hyderabad");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -87,11 +147,11 @@ function App() {
         try {
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
-
           const nearbyWeather = await getWeatherByCoordinates(latitude, longitude);
 
           setWeatherData(nearbyWeather);
           setCity(nearbyWeather.cityName);
+          rememberCity(nearbyWeather.cityName);
         } catch (locationError) {
           setError(locationError.message || "We could not load weather for your location.");
         } finally {
@@ -115,7 +175,6 @@ function App() {
     );
   }
 
-  // Refresh the city currently displayed on the dashboard.
   function handleRefresh() {
     if (weatherData) {
       loadWeather(weatherData.cityName);
@@ -124,8 +183,24 @@ function App() {
     }
   }
 
+  function handleSelectHistory(historyCity) {
+    setCity(historyCity);
+    loadWeather(historyCity);
+  }
+
+  function handleClearHistory() {
+    setSearchHistory([]);
+  }
+
+  function handleToggleTheme() {
+    setTheme((previousTheme) => previousTheme === "dark" ? "light" : "dark");
+  }
+
   const currentWeather = weatherData?.currentWeather;
   const pageTheme = getWeatherTheme(currentWeather);
+  const lastUpdatedText = currentWeather
+    ? formatCityTime(currentWeather.dt, currentWeather.timezone)
+    : "";
 
   return (
     <div className={"weather-scene " + pageTheme + " min-h-screen text-white"}>
@@ -139,6 +214,11 @@ function App() {
           loading={loading}
           onRefresh={handleRefresh}
           onUseLocation={handleUseLocation}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          searchHistory={searchHistory}
+          onSelectHistory={handleSelectHistory}
+          onClearHistory={handleClearHistory}
         />
 
         <main className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-5 sm:px-7 lg:px-10">
@@ -154,13 +234,9 @@ function App() {
               </h1>
             </div>
 
-            {currentWeather && (
-              <p className="text-xs text-white/60">
-                Last updated:{" "}
-                {new Date(currentWeather.dt * 1000).toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+            {currentWeather && !loading && (
+              <p className="text-xs text-white/70">
+                Last updated at {lastUpdatedText} local city time
               </p>
             )}
           </div>
@@ -174,13 +250,9 @@ function App() {
             </div>
           )}
 
-          {loading && !weatherData && (
-            <div className="glass-panel rounded-3xl p-12 text-center text-white/80">
-              Getting the latest weather for you...
-            </div>
-          )}
+          {loading && <WeatherSkeleton />}
 
-          {weatherData && (
+          {!loading && weatherData && (
             <>
               <section className="grid gap-4 xl:grid-cols-[1.2fr_0.78fr_1.15fr]">
                 <CurrentWeather
@@ -191,8 +263,16 @@ function App() {
 
                 <AirQuality airQuality={weatherData.airQuality} />
 
-                <SunCycle weather={weatherData.currentWeather} />
+                <SunCycle
+                  weather={weatherData.currentWeather}
+                  currentTime={currentTime}
+                />
               </section>
+
+              <WeatherAdvice
+                weather={weatherData.currentWeather}
+                forecast={weatherData.forecast}
+              />
 
               <WeatherDetails weather={weatherData.currentWeather} />
 
@@ -210,42 +290,31 @@ function App() {
   );
 }
 
-// This panel shows the daylight journey from sunrise to sunset.
-function SunCycle({ weather }) {
+// This panel shows the daylight journey and the next sunrise or sunset countdown.
+function SunCycle({ weather, currentTime }) {
   const sunriseTimestamp = weather.sys.sunrise;
   const sunsetTimestamp = weather.sys.sunset;
-  const currentTimestamp = weather.dt;
-
   const daylightSeconds = Math.max(sunsetTimestamp - sunriseTimestamp, 0);
   const daylightHours = Math.floor(daylightSeconds / 3600);
   const daylightMinutes = Math.floor((daylightSeconds % 3600) / 60);
-
   const daylightText = daylightHours + "h " + daylightMinutes + "m";
 
-  const sunriseText = new Date((sunriseTimestamp + weather.timezone) * 1000)
-    .toLocaleTimeString("en-IN", {
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "UTC",
-    });
+  const sunriseText = formatCityTime(sunriseTimestamp, weather.timezone);
+  const sunsetText = formatCityTime(sunsetTimestamp, weather.timezone);
 
-  const sunsetText = new Date((sunsetTimestamp + weather.timezone) * 1000)
-    .toLocaleTimeString("en-IN", {
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "UTC",
-    });
-
-  let daylightProgress = 0;
-
-  if (daylightSeconds > 0) {
-    daylightProgress = (currentTimestamp - sunriseTimestamp) / daylightSeconds;
-  }
-
-  daylightProgress = Math.min(Math.max(daylightProgress, 0), 1);
+  const daylightProgress = daylightSeconds > 0
+    ? Math.min(Math.max((currentTime - sunriseTimestamp) / daylightSeconds, 0), 1)
+    : 0;
 
   const sunPositionX = 20 + 280 * daylightProgress;
   const sunPositionY = 105 - 100 * Math.sin(Math.PI * daylightProgress);
+
+  const isBeforeSunrise = currentTime < sunriseTimestamp;
+  const nextSunEventTimestamp = isBeforeSunrise ? sunriseTimestamp : sunsetTimestamp;
+  const countdownSeconds = Math.max(nextSunEventTimestamp - currentTime, 0);
+  const countdownHours = Math.floor(countdownSeconds / 3600);
+  const countdownMinutes = Math.floor((countdownSeconds % 3600) / 60);
+  const countdownLabel = isBeforeSunrise ? "Sunrise in" : "Sunset in";
 
   return (
     <section className="glass-panel flex min-h-[300px] flex-col justify-between rounded-[26px] p-5 sm:p-7">
@@ -269,7 +338,6 @@ function SunCycle({ weather }) {
               strokeWidth="3"
               strokeDasharray="5 6"
             />
-
             <path
               d="M 20 105 A 140 100 0 0 1 300 105"
               fill="none"
@@ -278,10 +346,8 @@ function SunCycle({ weather }) {
               pathLength="100"
               strokeDasharray={daylightProgress * 100 + " 100"}
             />
-
             <circle cx="20" cy="105" r="6" fill="#fbbf24" />
             <circle cx="300" cy="105" r="6" fill="#f0abfc" />
-
             <circle
               cx={sunPositionX}
               cy={sunPositionY}
@@ -302,7 +368,6 @@ function SunCycle({ weather }) {
             <p className="text-xs text-white/55">Sunrise</p>
           </div>
         </div>
-
         <div className="flex items-center justify-end gap-2">
           <span className="text-2xl text-pink-200">☀</span>
           <div>
@@ -312,9 +377,17 @@ function SunCycle({ weather }) {
         </div>
       </div>
 
-      <div className="mt-4 border-t border-white/15 pt-3">
-        <p className="text-xs text-white/55">Total daylight</p>
-        <p className="mt-1 text-xl font-semibold text-white">{daylightText}</p>
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-3">
+        <div>
+          <p className="text-xs text-white/55">Total daylight</p>
+          <p className="mt-1 text-lg font-semibold text-white">{daylightText}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-white/55">{countdownLabel}</p>
+          <p className="mt-1 text-lg font-semibold text-white">
+            {countdownHours}h {countdownMinutes}m
+          </p>
+        </div>
       </div>
     </section>
   );
