@@ -1,122 +1,91 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import { Cloud, RefreshCw } from "lucide-react";
+import Navbar from "./components/Navbar";
+import SearchBar from "./components/SearchBar";
+import CurrentWeather from "./components/CurrentWeather";
+import WeatherDetails from "./components/WeatherDetails";
+import Forecast from "./components/Forecast";
+import { getWeatherByCity } from "./services/weatherService";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [city, setCity] = useState("Hyderabad");
+  const [weatherData, setWeatherData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function searchWeather(cityToSearch) {
+    if (!cityToSearch.trim()) {
+      setError("Please enter a city name.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await getWeatherByCity(cityToSearch.trim());
+      setWeatherData(data);
+      setCity(data.cityName);
+    } catch (requestError) {
+      setWeatherData(null);
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    searchWeather("Hyderabad");
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="min-h-screen bg-[#0b1220] text-slate-100">
+      <Navbar />
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-7 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-sky-300">Your weather, at a glance</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Weather dashboard</h1>
+            <p className="mt-2 text-sm text-slate-400">Find current conditions and the forecast for any city.</p>
+          </div>
+          {weatherData && !loading && (
+            <button type="button" onClick={() => searchWeather(city)} className="flex items-center gap-2 self-start rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 sm:self-auto">
+              <RefreshCw size={15} /> Refresh
+            </button>
+          )}
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+        <div className="mb-6">
+          <SearchBar city={city} setCity={setCity} onSearch={() => searchWeather(city)} loading={loading} />
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {error && <div role="alert" className="mb-6 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-200">{error}</div>}
+        {loading && (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-slate-900/50">
+            <div className="rounded-full bg-sky-400/10 p-4 text-sky-300"><Cloud size={30} className="animate-pulse" /></div>
+            <p className="text-sm text-slate-300">Getting the latest weather...</p>
+          </div>
+        )}
+        {!loading && weatherData && (
+          <div className="space-y-7">
+            <CurrentWeather weather={weatherData.currentWeather} city={weatherData.cityName} country={weatherData.country} />
+            <section>
+              <h2 className="mb-4 text-lg font-semibold text-white">Weather details</h2>
+              <WeatherDetails weather={weatherData.currentWeather} />
+            </section>
+            <Forecast forecast={weatherData.forecast} />
+          </div>
+        )}
+        {!loading && !weatherData && !error && (
+          <div className="rounded-3xl border border-white/10 bg-slate-900/50 p-10 text-center">
+            <Cloud size={34} className="mx-auto text-sky-300" />
+            <p className="mt-3 text-slate-300">Search for a city to see its weather.</p>
+          </div>
+        )}
+        <footer className="mt-10 border-t border-white/10 py-5 text-center text-xs text-slate-500">
+          Weather data provided by OpenWeather. Forecast readings are available in 3-hour intervals.
+        </footer>
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
