@@ -5,7 +5,7 @@ import CurrentWeather from "./components/CurrentWeather";
 import AirQuality from "./components/AirQuality";
 import WeatherDetails from "./components/WeatherDetails";
 import Forecast from "./components/Forecast";
-import { getWeatherByCity } from "./services/weatherService";
+import { getWeatherByCity, getWeatherByCoordinates } from "./services/weatherService";
 
 function getWeatherTheme(weather) {
   const weatherCondition = weather?.weather?.[0]?.main?.toLowerCase() || "clouds";
@@ -56,7 +56,7 @@ function App() {
   const currentWeather = weatherData?.currentWeather;
   const pageTheme = getWeatherTheme(currentWeather);
 
-  function handleRefresh() {
+  function handleUseLocation() {\n    if (!navigator.geolocation) {\n      setError("Your browser does not support location sharing. Please search for a city instead.");\n      return;\n    }\n\n    setLoading(true);\n    setError("");\n\n    navigator.geolocation.getCurrentPosition(\n      async (position) => {\n        try {\n          const latitude = position.coords.latitude;\n          const longitude = position.coords.longitude;\n          const nearbyWeather = await getWeatherByCoordinates(latitude, longitude);\n\n          setWeatherData(nearbyWeather);\n          setCity(nearbyWeather.cityName);\n        } catch (locationError) {\n          setError(locationError.message || "We could not load weather for your location.");\n        } finally {\n          setLoading(false);\n        }\n      },\n      (locationError) => {\n        if (locationError.code === 1) {\n          setError("Location permission was denied. Allow location access in your browser or search for a city.");\n        } else {\n          setError("We could not get your location. Please try again or search for a city.");\n        }\n        setLoading(false);\n      },\n      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }\n    );\n  }\n\n  function handleRefresh() {
     if (weatherData) {
       loadWeather(weatherData.cityName);
     } else {
